@@ -1,26 +1,44 @@
-import { Injectable } from '@nestjs/common';
+import { BadGatewayException, Inject, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { CreateCategoriaDto } from './dto/create-categoria.dto';
 import { UpdateCategoriaDto } from './dto/update-categoria.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Categoria } from './entities/categoria.entity';
+
 
 @Injectable()
 export class CategoriasService {
-  create(createCategoriaDto: CreateCategoriaDto) {
-    return 'This action adds a new categoria';
+  constructor(
+    @InjectModel(Categoria.name)
+    private readonly categoriaModel: Model<Categoria>,
+  ){}
+
+  async create(createCategoriaDto: CreateCategoriaDto){
+    try {
+      createCategoriaDto.nombre = createCategoriaDto.nombre.toLowerCase();
+      const categoria = await this.categoriaModel.create(createCategoriaDto);
+      return categoria;
+    } catch (error: any) {
+      if (error.code === 11000) {
+        throw new BadGatewayException(`La categoria ${createCategoriaDto.nombre} ya existe`);
+      }
+      throw new InternalServerErrorException('Error al crear la categoria');
+    }
   }
 
-  findAll() {
-    return `This action returns all categorias`;
+  async findAll() {
+    return await this.categoriaModel.find();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} categoria`;
+  async findOne(id: string) {
+    return await this.categoriaModel.findById(id);
   }
 
-  update(id: number, updateCategoriaDto: UpdateCategoriaDto) {
+  update(id: string, updateCategoriaDto: UpdateCategoriaDto) {
     return `This action updates a #${id} categoria`;
   }
 
-  remove(id: number) {
+  remove(id: string) {
     return `This action removes a #${id} categoria`;
   }
 }
